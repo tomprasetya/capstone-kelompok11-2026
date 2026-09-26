@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cozy_user
+      - DB_PASSWORD=cozy_password
+      - DB_NAME=cozy_db
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: cozy_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: cozy_user
+      POSTGRES_PASSWORD: cozy_password
+      POSTGRES_DB: cozy_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

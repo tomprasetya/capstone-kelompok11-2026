@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: API Specification - Capstone Kelompok 11 (Cozy Kost)
+  description: Kontrak API resmi mencakup Autentikasi JWT, Transaksi Sewa Kamar, Webhook Pembayaran, dan Modul AI/IoT Prediksi kWh Listrik.
+  version: 1.0.0
+servers:
+  - url: https://api.capstone11.com/v1
+    description: Production Server
+  - url: http://localhost:8080/v1
+    description: Local Development Server
+
+paths:
+  # ----------------------------------------------------
+  # 1. AUTENTIKASI (JWT)
+  # ----------------------------------------------------
+  /auth/login:
+    post:
+      summary: Autentikasi Pengguna & Penerbitan Token JWT
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: pemilik@cozykost.com
+                password:
+                  type: string
+                  format: password
+                  example: Password123!
+      responses:
+        '200':
+          description: Berhasil Login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  refresh_token:
+                    type: string
+                    example: d3I4MzJub2Rmam5zZGZuM24...
+        '401':
+          description: Kredensial tidak valid
+
+  # ----------------------------------------------------
+  # 2. TRANSAKSI SEWA KAMAR (PRODUK / KATALOG)
+  # ----------------------------------------------------
+  /products:
+    get:
+      summary: Menampilkan Daftar Katalog Tipe Kamar / Unit Kamar
+      operationId: getProducts
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Berhasil mengambil daftar unit kamar
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: room-01
+                    name:
+                      type: string
+                      example: Kamar 01 (AC + Kamar Mandi Dalam)
+                    price:
+                      type: number
+                      example: 1500000
+
+  /transactions/checkout:
+    post:
+      summary: Inisiasi Transaksi / Pembayaran Tagihan Kamar
+      operationId: checkoutTransaction
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - quantity
+                    properties:
+                      product_id:
+                        type: string
+                        example: room-01
+                      quantity:
+                        type: integer
+                        example: 1
+      responses:
+        '201':
+          description: Transaksi Pembayaran Berhasil Dibuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_id:
+                    type: string
+                    example: trx-cozy-001
+                  status:
+                    type: string
+                    example: PENDING
+
+  # ----------------------------------------------------
+  # 3. WEBHOOK PEMBAYARAN
+  # ----------------------------------------------------
+  /webhooks/payment:
+    post:
+      summary: Callback Notification dari Payment Gateway / Bank
+      operationId: handlePaymentWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - transaction_id
+                - status
+                - signature_key
+              properties:
+                transaction_id:
+                  type: string
+                  example: trx-cozy-001
+                status:
+                  type: string
+                  enum:
+                    - PAID
+                    - EXPIRED
+                    - FAILED
+                  example: PAID
+                signature_key:
+                  type: string
+                  example: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      responses:
+        '200':
+          description: Webhook Diterima dan Diproses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Status pembayaran berhasil diperbarui menjadi TERKONFIRMASI
+
+  # ----------------------------------------------------
+  # 4. ENDPOINT MODUL AI / IOT
+
+  /ai/predict:
+    post:
+      summary: Endpoint Inferensi AI (Prediksi Estimasi kWh & Tagihan Listrik)
+      operationId: predictAI
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt_data
+              properties:
+                prompt_data:
+                  type: string
+                  example: Hitung estimasi penggunaan kWh Kamar 05 bulan depan
+      responses:
+        '200':
+          description: Hasil Prediksi / Inferensi AI
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  prediction:
+                    type: string
+                    example: Estimasi penggunaan Kamar 05 adalah 135 kWh (Rp 202.500)
+                  confidence_score:
+                    type: number
+                    example: 0.94
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

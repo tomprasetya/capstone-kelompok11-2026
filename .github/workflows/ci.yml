@@ -1,0 +1,33 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-openapi:
+    name: Validate OpenAPI Spec
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Lint OpenAPI Contract
+        uses: stoplightio/spectral-action@v0.8.10
+        with:
+          file_glob: 'openapi.yaml'
+
+  test-compose-config:
+    name: Validate Docker Compose Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .env from template
+        run: cp .env.example .env
+
+      - name: Verify Compose Config
+        run: docker compose config

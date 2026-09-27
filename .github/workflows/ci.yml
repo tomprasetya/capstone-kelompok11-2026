@@ -1,4 +1,3 @@
-
 name: CI Pipeline
 
 on:
@@ -19,7 +18,6 @@ jobs:
         uses: stoplightio/spectral-action@v0.8.10
         with:
           file_glob: 'openapi.yaml'
-          spectral_ruleset: 'spectral:oas'
 
   test-compose-config:
     name: Validate Docker Compose Configuration
